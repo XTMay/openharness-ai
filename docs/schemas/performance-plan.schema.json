@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/XTMay/openharness-ai/docs/schemas/performance-plan.schema.json",
+  "title": "OpenHarness Performance Plan",
+  "type": "object",
+  "required": [
+    "agent",
+    "repository_root",
+    "repo_agent_config",
+    "generated_from",
+    "base_url_env",
+    "scenarios",
+    "assumptions",
+    "warnings"
+  ],
+  "properties": {
+    "agent": { "type": "string", "const": "PerfAgent" },
+    "repository_root": { "type": "string" },
+    "repo_agent_config": { "type": ["string", "null"] },
+    "generated_from": { "type": "string" },
+    "base_url_env": { "type": "string" },
+    "scenarios": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/scenario" }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "priority": {
+      "type": "string",
+      "enum": ["high", "medium", "low"]
+    },
+    "load_profile": {
+      "type": "object",
+      "required": ["name", "virtual_users", "duration", "ramp_up", "description"],
+      "properties": {
+        "name": { "type": "string" },
+        "virtual_users": { "type": "integer", "minimum": 1 },
+        "duration": { "type": "string" },
+        "ramp_up": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "threshold": {
+      "type": "object",
+      "required": ["metric", "condition", "rationale"],
+      "properties": {
+        "metric": { "type": "string" },
+        "condition": { "type": "string" },
+        "rationale": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "scenario": {
+      "type": "object",
+      "required": [
+        "name",
+        "method",
+        "path",
+        "priority",
+        "source",
+        "framework",
+        "reason",
+        "load_profile",
+        "thresholds",
+        "assumptions"
+      ],
+      "properties": {
+        "name": { "type": "string" },
+        "method": { "type": "string" },
+        "path": { "type": "string" },
+        "priority": { "$ref": "#/$defs/priority" },
+        "source": { "type": "string" },
+        "framework": { "type": "string" },
+        "reason": { "type": "string" },
+        "load_profile": { "$ref": "#/$defs/load_profile" },
+        "thresholds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/threshold" }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+

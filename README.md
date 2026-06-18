@@ -36,7 +36,11 @@ flowchart LR
 
 ## What Works Today
 
-The first implemented tool is **RepoAgent Analyze**: a read-only CLI that scans a repository and produces a structured repository manifest.
+OpenHarness currently ships two read-only workflows.
+
+### RepoAgent Analyze
+
+RepoAgent scans a repository and produces a structured repository manifest.
 
 ```bash
 openharness analyze --repo examples/fastapi-service --format text
@@ -50,7 +54,7 @@ OpenHarness RepoAgent Manifest
 Repository: /path/to/openharness-ai/examples/fastapi-service
 Config: openharness.yaml
 Files: 6
-Bytes: 1781
+Bytes: 1853
 
 Languages:
 - Python: 2 files, 545 bytes
@@ -93,6 +97,30 @@ openharness analyze --repo examples/fastapi-service --format markdown
 ```
 
 RepoAgent also supports `openharness.yaml` for real repositories that need custom ignore rules, service roots, production paths, or business-critical keywords.
+
+### PerfAgent Plan
+
+PerfAgent consumes RepoAgent output and creates an initial performance test plan.
+
+```bash
+openharness perf plan --repo examples/fastapi-service --format markdown
+```
+
+Example plan excerpt:
+
+```text
+OpenHarness PerfAgent Plan
+
+Scenarios:
+- HIGH POST /checkout
+  load: 25 VUs for 3m
+- HIGH POST /orders
+  load: 25 VUs for 3m
+- HIGH GET /products
+  load: 25 VUs for 3m
+```
+
+PerfAgent Plan does not run k6 yet. It validates that RepoAgent can provide useful performance targets for downstream agents.
 
 ## PerfAgent Workflow
 
@@ -165,8 +193,8 @@ flowchart LR
     r1 --> r2 --> r3 --> r4 --> r5
 ```
 
-1. RepoAgent CLI: repository analysis and manifest generation.
-2. PerfAgent Plan: rank performance-sensitive routes and create test plans.
+1. RepoAgent CLI: repository analysis and manifest generation. Done.
+2. PerfAgent Plan: rank performance-sensitive routes and create test plans. Done.
 3. PerfAgent k6 Generation: generate validated k6 scripts.
 4. PerfAgent Run and Report: execute k6 and produce performance reports.
 5. GitHub Preview: render PR comments in dry-run mode before publishing.
@@ -181,6 +209,7 @@ flowchart LR
 - [Translation Guide](docs/i18n.md)
 - [RepoAgent Configuration](docs/repo-agent-configuration.md)
 - [Repository Manifest Schema](docs/schemas/repository-manifest.schema.json)
+- [Performance Plan Schema](docs/schemas/performance-plan.schema.json)
 - [Contributing Guide](CONTRIBUTING.md)
 
 ## Project Principles

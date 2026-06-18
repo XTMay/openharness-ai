@@ -79,10 +79,11 @@ Deliverables:
 
 Deliverables:
 
-- Use RepoAgent manifest as input.
-- Rank performance-sensitive routes.
-- Generate a test plan.
-- Save the plan as YAML or JSON.
+- Use RepoAgent manifest as input. Done.
+- Rank performance-sensitive routes. Done.
+- Generate a test plan. Done.
+- Save the plan as JSON, text, or Markdown. Done.
+- Provide a performance plan JSON Schema. Done.
 
 ### Milestone 3: PerfAgent k6 Generation
 

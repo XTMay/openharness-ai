@@ -36,7 +36,11 @@ flowchart LR
 
 ## 当前可用能力
 
-第一个已实现的工具是 **RepoAgent Analyze**：一个只读 CLI，用来扫描仓库并生成结构化仓库画像。
+OpenHarness 当前已经有两个只读工作流。
+
+### RepoAgent Analyze
+
+RepoAgent 用来扫描仓库并生成结构化仓库画像。
 
 ```bash
 openharness analyze --repo examples/fastapi-service --format text
@@ -50,7 +54,7 @@ OpenHarness RepoAgent Manifest
 Repository: /path/to/openharness-ai/examples/fastapi-service
 Config: openharness.yaml
 Files: 6
-Bytes: 1781
+Bytes: 1853
 
 Languages:
 - Python: 2 files, 545 bytes
@@ -93,6 +97,30 @@ openharness analyze --repo examples/fastapi-service --format markdown
 ```
 
 RepoAgent 也支持 `openharness.yaml`，适合真实仓库自定义忽略规则、服务根目录、生产代码路径和业务关键字。
+
+### PerfAgent Plan
+
+PerfAgent 会消费 RepoAgent 输出，并生成初始性能测试计划。
+
+```bash
+openharness perf plan --repo examples/fastapi-service --format markdown
+```
+
+示例计划片段：
+
+```text
+OpenHarness PerfAgent Plan
+
+Scenarios:
+- HIGH POST /checkout
+  load: 25 VUs for 3m
+- HIGH POST /orders
+  load: 25 VUs for 3m
+- HIGH GET /products
+  load: 25 VUs for 3m
+```
+
+PerfAgent Plan 目前还不会执行 k6。它的价值是验证 RepoAgent 能否为下游 Agent 提供有用的性能测试候选目标。
 
 ## PerfAgent 工作流
 
@@ -165,8 +193,8 @@ flowchart LR
     r1 --> r2 --> r3 --> r4 --> r5
 ```
 
-1. RepoAgent CLI：仓库分析和 manifest 生成。
-2. PerfAgent Plan：识别性能敏感路由并生成测试计划。
+1. RepoAgent CLI：仓库分析和 manifest 生成。已完成。
+2. PerfAgent Plan：识别性能敏感路由并生成测试计划。已完成。
 3. PerfAgent k6 Generation：生成可校验的 k6 脚本。
 4. PerfAgent Run and Report：执行 k6 并生成性能报告。
 5. GitHub Preview：先以 dry-run 方式渲染 PR 评论，再发布。
@@ -181,6 +209,7 @@ flowchart LR
 - [翻译指南](docs/i18n.md)
 - [RepoAgent 配置](docs/repo-agent-configuration.md)
 - [Repository Manifest Schema](docs/schemas/repository-manifest.schema.json)
+- [Performance Plan Schema](docs/schemas/performance-plan.schema.json)
 - [贡献指南](CONTRIBUTING.md)
 
 ## 项目原则

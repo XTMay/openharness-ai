@@ -229,6 +229,14 @@ PerfAgent ranks candidate targets using:
 
 RepoAgent can pre-compute initial `performance_targets` from detected routes. PerfAgent should treat them as candidate inputs, not final test plans.
 
+Current implementation status:
+
+- `openharness perf plan` runs RepoAgent analysis and creates an initial performance plan.
+- The plan includes scenarios, load profiles, thresholds, assumptions, and warnings.
+- The plan is available as JSON, text, or Markdown.
+- The JSON contract is documented at `docs/schemas/performance-plan.schema.json`.
+- k6 generation and execution are intentionally out of scope for this step.
+
 ### Test Plan
 
 The test plan should be human-readable and machine-executable.
