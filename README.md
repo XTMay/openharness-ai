@@ -39,26 +39,34 @@ flowchart LR
 The first implemented tool is **RepoAgent Analyze**: a read-only CLI that scans a repository and produces a structured repository manifest.
 
 ```bash
-openharness analyze --repo . --format text
+openharness analyze --repo examples/fastapi-service --format text
 ```
 
-Example output:
+Reproducible example output:
 
 ```text
 OpenHarness RepoAgent Manifest
 
-Repository: /path/to/repo
-Files: 27
-Bytes: 69258
+Repository: /path/to/openharness-ai/examples/fastapi-service
+Files: 5
+Bytes: 1298
 
 Languages:
-- Python: 10 files, 24740 bytes
+- Python: 2 files, 545 bytes
 
 Frameworks:
-- FastAPI
+- FastAPI (high confidence)
 
 API Routes:
-- GET /health (FastAPI, app.py)
+- GET /health (FastAPI, app/main.py)
+- GET /products (FastAPI, app/main.py)
+- POST /orders (FastAPI, app/main.py)
+- POST /checkout (FastAPI, app/main.py)
+
+Performance Targets:
+- HIGH POST /checkout: Business-critical route keyword suggests performance sensitivity
+- HIGH POST /orders: Business-critical route keyword suggests performance sensitivity
+- MEDIUM GET /products: Collection endpoint may become throughput or pagination sensitive
 
 Infrastructure:
 - Dockerfile
@@ -70,9 +78,18 @@ RepoAgent detects:
 - Package managers
 - Frameworks
 - API routes
+- Performance target candidates
 - Service entrypoints
 - Infrastructure files
 - Test assets
+
+Output formats:
+
+```bash
+openharness analyze --repo examples/fastapi-service --format json
+openharness analyze --repo examples/fastapi-service --format text
+openharness analyze --repo examples/fastapi-service --format markdown
+```
 
 ## PerfAgent Workflow
 
@@ -159,6 +176,7 @@ flowchart LR
 - [MVP Roadmap](docs/mvp-roadmap.md)
 - [Development Plan](docs/development-plan.md)
 - [Translation Guide](docs/i18n.md)
+- [Repository Manifest Schema](docs/schemas/repository-manifest.schema.json)
 - [Contributing Guide](CONTRIBUTING.md)
 
 ## Project Principles

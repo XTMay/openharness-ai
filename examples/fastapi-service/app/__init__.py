@@ -1,0 +1,2 @@
+"""Example FastAPI service package."""
+

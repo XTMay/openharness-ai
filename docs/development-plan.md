@@ -42,10 +42,12 @@ Responsibilities:
 - Detect package managers.
 - Detect frameworks.
 - Extract basic API routes.
+- Attach evidence and confidence to key detections.
 - Identify service entrypoints.
 - Identify infrastructure files.
 - Identify tests.
-- Output a structured manifest.
+- Output a structured manifest in JSON, text, or Markdown.
+- Produce performance target candidates for PerfAgent.
 
 Why this comes first:
 
@@ -57,15 +59,20 @@ Why this comes first:
 
 ### Milestone 1: RepoAgent CLI
 
-Status: in progress.
+Status: implemented and improving.
 
 Deliverables:
 
-- Python package scaffold
-- `openharness analyze`
-- Unit tests
-- CI
-- Documentation
+- Python package scaffold. Done.
+- `openharness analyze`. Done.
+- JSON, text, and Markdown outputs. Done.
+- Evidence and confidence for key detections. Done.
+- Performance target candidates. Done.
+- Manifest JSON Schema. Done.
+- FastAPI example repository. Done.
+- Unit tests. Done.
+- CI. Done.
+- Documentation. In progress.
 
 ### Milestone 2: PerfAgent Plan
 

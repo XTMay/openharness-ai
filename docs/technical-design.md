@@ -174,7 +174,7 @@ Pipeline:
 4. Extract API routes where supported.
 5. Detect databases, queues, caches, and external services.
 6. Detect existing tests and benchmark assets.
-7. Build a repository manifest and service map.
+7. Build a repository manifest with evidence, confidence, and performance target candidates.
 8. Persist a repository snapshot.
 
 Initial analyzer support:
@@ -186,6 +186,15 @@ Initial analyzer support:
 - Kubernetes manifests
 
 The first MVP can support a smaller subset, but the interfaces should anticipate this roadmap.
+
+Current manifest outputs:
+
+- JSON for machines and downstream agents.
+- Text for terminal usage.
+- Markdown for issue, PR, and human review workflows.
+- JSON Schema at `docs/schemas/repository-manifest.schema.json`.
+
+RepoAgent detections should include evidence and confidence when possible so users can understand why the agent reached a conclusion.
 
 ## 7. PerfAgent Design
 
@@ -214,6 +223,8 @@ PerfAgent ranks candidate targets using:
 - Authentication and checkout-like flows
 - Existing API documentation
 - Historical performance issues where available
+
+RepoAgent can pre-compute initial `performance_targets` from detected routes. PerfAgent should treat them as candidate inputs, not final test plans.
 
 ### Test Plan
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from openharness.agents.repo_agent import analyze_repository
 
@@ -29,12 +30,21 @@ def test_repo_agent_detects_fastapi_routes(tmp_path):
     manifest = analyze_repository(tmp_path)
 
     assert [language.name for language in manifest.languages] == ["Python"]
-    assert "FastAPI" in manifest.frameworks
+    assert [framework.name for framework in manifest.frameworks] == ["FastAPI"]
+    assert manifest.frameworks[0].confidence == "high"
+    assert manifest.frameworks[0].evidence[0].source == "app.py"
     assert "Python project" in manifest.package_managers
     assert {(route.method, route.path) for route in manifest.api_routes} == {
         ("GET", "/health"),
         ("POST", "/orders"),
     }
+    assert manifest.api_routes[0].evidence[0].line == 4
+    fastapi_targets = [
+        (target.method, target.path, target.priority) for target in manifest.performance_targets
+    ]
+    assert fastapi_targets == [
+        ("POST", "/orders", "high")
+    ]
     assert manifest.service_entrypoints[0].kind == "python_app"
 
 
@@ -63,13 +73,21 @@ def test_repo_agent_detects_express_and_node_scripts(tmp_path):
     manifest = analyze_repository(tmp_path)
 
     assert "JavaScript" in [language.name for language in manifest.languages]
-    assert "Express" in manifest.frameworks
+    assert [framework.name for framework in manifest.frameworks] == ["Express"]
+    assert manifest.frameworks[0].confidence == "high"
     assert "npm" in manifest.package_managers
     assert "package.json#scripts.test" in manifest.test_inventory
     assert {(route.method, route.path) for route in manifest.api_routes} == {
         ("GET", "/products"),
         ("POST", "/checkout"),
     }
+    express_targets = [
+        (target.method, target.path, target.priority) for target in manifest.performance_targets
+    ]
+    assert express_targets == [
+        ("POST", "/checkout", "high"),
+        ("GET", "/products", "medium"),
+    ]
     assert any(entrypoint.kind == "node_script" for entrypoint in manifest.service_entrypoints)
 
 
@@ -95,6 +113,29 @@ def test_repo_agent_does_not_treat_test_fixtures_as_service_routes(tmp_path):
     manifest = analyze_repository(tmp_path)
 
     assert "tests/test_routes.py" in manifest.test_inventory
-    assert "FastAPI" not in manifest.frameworks
+    assert "FastAPI" not in [framework.name for framework in manifest.frameworks]
     assert not manifest.api_routes
     assert not manifest.service_entrypoints
+
+
+def test_repo_agent_analyzes_fastapi_example():
+    repo_root = Path(__file__).resolve().parents[3]
+    example_path = repo_root / "examples" / "fastapi-service"
+
+    manifest = analyze_repository(example_path)
+
+    assert [framework.name for framework in manifest.frameworks] == ["FastAPI"]
+    assert {(route.method, route.path) for route in manifest.api_routes} == {
+        ("GET", "/health"),
+        ("GET", "/products"),
+        ("POST", "/orders"),
+        ("POST", "/checkout"),
+    }
+    example_targets = [
+        (target.method, target.path, target.priority) for target in manifest.performance_targets
+    ]
+    assert example_targets == [
+        ("POST", "/checkout", "high"),
+        ("POST", "/orders", "high"),
+        ("GET", "/products", "medium"),
+    ]

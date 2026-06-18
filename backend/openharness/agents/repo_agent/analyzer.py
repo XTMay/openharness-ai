@@ -12,7 +12,10 @@ from typing import Iterable
 
 from openharness.agents.repo_agent.models import (
     ApiRoute,
+    DetectionEvidence,
+    FrameworkDetection,
     LanguageStat,
+    PerformanceTarget,
     RepositoryIdentity,
     RepositoryManifest,
     ServiceEntrypoint,
@@ -79,6 +82,7 @@ def analyze_repository(repo_path: str | Path, max_files: int = 10_000) -> Reposi
     package_managers = _detect_package_managers(scan.files)
     frameworks = _detect_frameworks(scan.files, text_cache)
     api_routes = _extract_api_routes(text_cache)
+    performance_targets = _identify_performance_targets(api_routes)
     service_entrypoints = _detect_service_entrypoints(scan.files, text_cache)
     infrastructure = _detect_infrastructure(scan.files, text_cache)
     test_inventory = _detect_tests(scan.files, text_cache)
@@ -101,6 +105,7 @@ def analyze_repository(repo_path: str | Path, max_files: int = 10_000) -> Reposi
         frameworks=frameworks,
         service_entrypoints=service_entrypoints,
         api_routes=api_routes,
+        performance_targets=performance_targets,
         infrastructure=infrastructure,
         test_inventory=test_inventory,
         warnings=warnings,
@@ -148,8 +153,10 @@ def _detect_package_managers(files: Iterable[FileRecord]) -> list[str]:
     return sorted(managers)
 
 
-def _detect_frameworks(files: Iterable[FileRecord], text_cache: dict[str, str]) -> list[str]:
-    frameworks: set[str] = set()
+def _detect_frameworks(
+    files: Iterable[FileRecord], text_cache: dict[str, str]
+) -> list[FrameworkDetection]:
+    evidence_by_framework: dict[str, list[DetectionEvidence]] = defaultdict(list)
     filenames = {Path(file.relative_path).name for file in files}
 
     for path, text in text_cache.items():
@@ -158,17 +165,40 @@ def _detect_frameworks(files: Iterable[FileRecord], text_cache: dict[str, str]) 
         suffix = Path(path).suffix.lower()
         if suffix == ".py":
             if _contains_fastapi_app(text):
-                frameworks.add("FastAPI")
+                evidence_by_framework["FastAPI"].append(
+                    _evidence(
+                        path,
+                        "Imports FastAPI and creates a FastAPI application",
+                        text,
+                        "FastAPI(",
+                    )
+                )
             if _contains_flask_app(text):
-                frameworks.add("Flask")
+                evidence_by_framework["Flask"].append(
+                    _evidence(path, "Imports Flask and creates a Flask application", text, "Flask(")
+                )
         if suffix in {".js", ".jsx", ".ts", ".tsx"}:
             if "express(" in text or "from 'express'" in text or 'from "express"' in text:
-                frameworks.add("Express")
+                evidence_by_framework["Express"].append(
+                    _evidence(path, "Uses Express application or import", text, "express")
+                )
             if "next" in text.lower() and "package.json" in filenames:
-                frameworks.add("Next.js")
+                evidence_by_framework["Next.js"].append(
+                    DetectionEvidence(
+                        source=path,
+                        detail="References Next.js with package.json present",
+                    )
+                )
         if suffix in {".java", ".kt"}:
             if "@SpringBootApplication" in text:
-                frameworks.add("Spring Boot")
+                evidence_by_framework["Spring Boot"].append(
+                    _evidence(
+                        path,
+                        "Declares a Spring Boot application",
+                        text,
+                        "@SpringBootApplication",
+                    )
+                )
 
     package_json = text_cache.get("package.json")
     if package_json:
@@ -181,11 +211,22 @@ def _detect_frameworks(files: Iterable[FileRecord], text_cache: dict[str, str]) 
             **package_data.get("devDependencies", {}),
         }
         if "express" in dependencies:
-            frameworks.add("Express")
+            evidence_by_framework["Express"].append(
+                DetectionEvidence(source="package.json", detail="Declares express dependency")
+            )
         if "next" in dependencies:
-            frameworks.add("Next.js")
+            evidence_by_framework["Next.js"].append(
+                DetectionEvidence(source="package.json", detail="Declares next dependency")
+            )
 
-    return sorted(frameworks)
+    return [
+        FrameworkDetection(
+            name=name,
+            confidence="high",
+            evidence=_dedupe_evidence(evidence),
+        )
+        for name, evidence in sorted(evidence_by_framework.items())
+    ]
 
 
 def _extract_api_routes(text_cache: dict[str, str]) -> list[ApiRoute]:
@@ -203,6 +244,14 @@ def _extract_api_routes(text_cache: dict[str, str]) -> list[ApiRoute]:
                         path=match.group(2),
                         source=path,
                         framework="FastAPI",
+                        confidence="high",
+                        evidence=[
+                            DetectionEvidence(
+                                source=path,
+                                detail="FastAPI route decorator",
+                                line=_line_number(text, match.start()),
+                            )
+                        ],
                     )
                 )
             for match in FLASK_ROUTE_PATTERN.finditer(text):
@@ -212,6 +261,14 @@ def _extract_api_routes(text_cache: dict[str, str]) -> list[ApiRoute]:
                         path=match.group(1),
                         source=path,
                         framework="Flask",
+                        confidence="medium",
+                        evidence=[
+                            DetectionEvidence(
+                                source=path,
+                                detail="Flask route decorator",
+                                line=_line_number(text, match.start()),
+                            )
+                        ],
                     )
                 )
         elif suffix in {".js", ".jsx", ".ts", ".tsx"}:
@@ -222,6 +279,14 @@ def _extract_api_routes(text_cache: dict[str, str]) -> list[ApiRoute]:
                         path=match.group(2),
                         source=path,
                         framework="Express",
+                        confidence="high",
+                        evidence=[
+                            DetectionEvidence(
+                                source=path,
+                                detail="Express route registration",
+                                line=_line_number(text, match.start()),
+                            )
+                        ],
                     )
                 )
         elif suffix in {".java", ".kt"}:
@@ -232,10 +297,40 @@ def _extract_api_routes(text_cache: dict[str, str]) -> list[ApiRoute]:
                         path=match.group(2),
                         source=path,
                         framework="Spring Boot",
+                        confidence="medium",
+                        evidence=[
+                            DetectionEvidence(
+                                source=path,
+                                detail=f"Spring {match.group(1)} annotation",
+                                line=_line_number(text, match.start()),
+                            )
+                        ],
                     )
                 )
 
     return routes
+
+
+def _identify_performance_targets(routes: Iterable[ApiRoute]) -> list[PerformanceTarget]:
+    targets: list[PerformanceTarget] = []
+    for route in routes:
+        if _is_low_signal_route(route.path):
+            continue
+
+        priority, reason = _performance_priority(route)
+        targets.append(
+            PerformanceTarget(
+                method=route.method,
+                path=route.path,
+                source=route.source,
+                framework=route.framework,
+                priority=priority,
+                reason=reason,
+                evidence=route.evidence,
+            )
+        )
+
+    return sorted(targets, key=lambda target: (_priority_rank(target.priority), target.path))
 
 
 def _detect_service_entrypoints(
@@ -245,7 +340,19 @@ def _detect_service_entrypoints(
     filenames = {Path(file.relative_path).name: file.relative_path for file in files}
 
     if "Dockerfile" in filenames:
-        entrypoints.append(ServiceEntrypoint(kind="container", path=filenames["Dockerfile"]))
+        entrypoints.append(
+            ServiceEntrypoint(
+                kind="container",
+                path=filenames["Dockerfile"],
+                confidence="medium",
+                evidence=[
+                    DetectionEvidence(
+                        source=filenames["Dockerfile"],
+                        detail="Dockerfile can define a runnable service container",
+                    )
+                ],
+            )
+        )
 
     package_json = text_cache.get("package.json")
     if package_json:
@@ -263,6 +370,13 @@ def _detect_service_entrypoints(
                         path="package.json",
                         name=script_name,
                         command=command,
+                        confidence="high",
+                        evidence=[
+                            DetectionEvidence(
+                                source="package.json",
+                                detail=f"Defines npm script '{script_name}'",
+                            )
+                        ],
                     )
                 )
 
@@ -272,9 +386,33 @@ def _detect_service_entrypoints(
         if Path(path).suffix.lower() == ".py" and (
             _contains_fastapi_app(text) or _contains_flask_app(text)
         ):
-            entrypoints.append(ServiceEntrypoint(kind="python_app", path=path))
+            entrypoints.append(
+                ServiceEntrypoint(
+                    kind="python_app",
+                    path=path,
+                    confidence="high",
+                    evidence=[
+                        DetectionEvidence(
+                            source=path,
+                            detail="Python web application object detected",
+                        )
+                    ],
+                )
+            )
         if Path(path).suffix.lower() in {".java", ".kt"} and "@SpringBootApplication" in text:
-            entrypoints.append(ServiceEntrypoint(kind="spring_boot_app", path=path))
+            entrypoints.append(
+                ServiceEntrypoint(
+                    kind="spring_boot_app",
+                    path=path,
+                    confidence="high",
+                    evidence=[
+                        DetectionEvidence(
+                            source=path,
+                            detail="Spring Boot application annotation detected",
+                        )
+                    ],
+                )
+            )
 
     return entrypoints
 
@@ -306,7 +444,9 @@ def _detect_tests(files: Iterable[FileRecord], text_cache: dict[str, str]) -> li
         if "test" in path.parts or "tests" in path.parts:
             inventory.add(path.as_posix())
             continue
-        if name.startswith("test_") or name.endswith(("_test.py", ".test.js", ".spec.js", ".test.ts", ".spec.ts")):
+        if name.startswith("test_") or name.endswith(
+            ("_test.py", ".test.js", ".spec.js", ".test.ts", ".spec.ts")
+        ):
             inventory.add(path.as_posix())
 
     package_json = text_cache.get("package.json")
@@ -373,6 +513,71 @@ def _contains_fastapi_app(text: str) -> bool:
 def _contains_flask_app(text: str) -> bool:
     has_import = re.search(r"^\s*(from\s+flask\s+import|import\s+flask\b)", text, re.MULTILINE)
     return bool(has_import and "Flask(" in text)
+
+
+def _evidence(path: str, detail: str, text: str, needle: str) -> DetectionEvidence:
+    index = text.find(needle)
+    return DetectionEvidence(
+        source=path,
+        detail=detail,
+        line=_line_number(text, index) if index >= 0 else None,
+    )
+
+
+def _dedupe_evidence(evidence: Iterable[DetectionEvidence]) -> list[DetectionEvidence]:
+    seen: set[tuple[str, str, int | None]] = set()
+    deduped: list[DetectionEvidence] = []
+    for item in evidence:
+        key = (item.source, item.detail, item.line)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(item)
+    return deduped[:5]
+
+
+def _line_number(text: str, index: int) -> int:
+    return text.count("\n", 0, index) + 1
+
+
+def _is_low_signal_route(path: str) -> bool:
+    normalized = path.lower().strip("/")
+    return normalized in {
+        "",
+        "health",
+        "healthz",
+        "ready",
+        "readyz",
+        "live",
+        "livez",
+        "metrics",
+        "docs",
+        "openapi.json",
+    }
+
+
+def _performance_priority(route: ApiRoute) -> tuple[str, str]:
+    normalized = route.path.lower()
+    business_keywords = ("checkout", "payment", "order", "search", "cart", "booking")
+    write_methods = {"POST", "PUT", "PATCH", "DELETE"}
+
+    if any(keyword in normalized for keyword in business_keywords):
+        return "high", "Business-critical route keyword suggests performance sensitivity"
+
+    if route.method in write_methods:
+        return "high", "Write endpoint can affect user-facing transaction latency"
+
+    if any(keyword in normalized for keyword in ("list", "products", "items")):
+        return "medium", "Collection endpoint may become throughput or pagination sensitive"
+
+    if route.method == "GET":
+        return "medium", "Read endpoint may be useful for baseline latency testing"
+
+    return "low", "Route is available for exploratory performance testing"
+
+
+def _priority_rank(priority: str) -> int:
+    return {"high": 0, "medium": 1, "low": 2}.get(priority, 3)
 
 
 def _git_output(root: Path, *args: str) -> str | None:

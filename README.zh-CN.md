@@ -39,26 +39,34 @@ flowchart LR
 第一个已实现的工具是 **RepoAgent Analyze**：一个只读 CLI，用来扫描仓库并生成结构化仓库画像。
 
 ```bash
-openharness analyze --repo . --format text
+openharness analyze --repo examples/fastapi-service --format text
 ```
 
-示例输出：
+可复现示例输出：
 
 ```text
 OpenHarness RepoAgent Manifest
 
-Repository: /path/to/repo
-Files: 27
-Bytes: 69258
+Repository: /path/to/openharness-ai/examples/fastapi-service
+Files: 5
+Bytes: 1298
 
 Languages:
-- Python: 10 files, 24740 bytes
+- Python: 2 files, 545 bytes
 
 Frameworks:
-- FastAPI
+- FastAPI (high confidence)
 
 API Routes:
-- GET /health (FastAPI, app.py)
+- GET /health (FastAPI, app/main.py)
+- GET /products (FastAPI, app/main.py)
+- POST /orders (FastAPI, app/main.py)
+- POST /checkout (FastAPI, app/main.py)
+
+Performance Targets:
+- HIGH POST /checkout: Business-critical route keyword suggests performance sensitivity
+- HIGH POST /orders: Business-critical route keyword suggests performance sensitivity
+- MEDIUM GET /products: Collection endpoint may become throughput or pagination sensitive
 
 Infrastructure:
 - Dockerfile
@@ -70,9 +78,18 @@ RepoAgent 当前可以识别：
 - 包管理器
 - Web 框架
 - API 路由
+- 性能测试候选目标
 - 服务入口
 - 基础设施文件
 - 测试资产
+
+输出格式：
+
+```bash
+openharness analyze --repo examples/fastapi-service --format json
+openharness analyze --repo examples/fastapi-service --format text
+openharness analyze --repo examples/fastapi-service --format markdown
+```
 
 ## PerfAgent 工作流
 
@@ -159,6 +176,7 @@ flowchart LR
 - [MVP 路线图](docs/mvp-roadmap.md)
 - [开发计划](docs/development-plan.md)
 - [翻译指南](docs/i18n.md)
+- [Repository Manifest Schema](docs/schemas/repository-manifest.schema.json)
 - [贡献指南](CONTRIBUTING.md)
 
 ## 项目原则
