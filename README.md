@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/XTMay/openharness-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/XTMay/openharness-ai/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.12%2B-blue.svg)](pyproject.toml)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 
 English | [简体中文](README.zh-CN.md)
 
@@ -127,7 +127,7 @@ flowchart TB
 ```bash
 git clone https://github.com/XTMay/openharness-ai.git
 cd openharness-ai
-python3.12 -m pip install -e ".[dev]"
+python3.10 -m pip install -e ".[dev]"
 openharness analyze --repo . --format text
 pytest
 ```
@@ -158,6 +158,7 @@ flowchart LR
 - [Technical Design](docs/technical-design.md)
 - [MVP Roadmap](docs/mvp-roadmap.md)
 - [Development Plan](docs/development-plan.md)
+- [Translation Guide](docs/i18n.md)
 - [Contributing Guide](CONTRIBUTING.md)
 
 ## Project Principles

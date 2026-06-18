@@ -7,7 +7,7 @@ The project is early, so the best contributions are small, testable improvements
 ## Development Setup
 
 ```bash
-python3.12 -m pip install -e ".[dev]"
+python3.10 -m pip install -e ".[dev]"
 openharness analyze --repo . --format text
 pytest
 ```

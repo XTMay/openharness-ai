@@ -53,7 +53,7 @@ Responsibilities:
 
 Initial technology choices:
 
-- Python 3.12
+- Python 3.10+
 - LangGraph for stateful agent workflows
 - MCP-compatible tool boundaries where useful
 - FastAPI for service APIs
@@ -219,4 +219,3 @@ Before production code starts, the project should approve:
 - PerfAgent MVP scope
 - Local-first developer experience
 - Security approval gates for external side effects
-

@@ -10,7 +10,7 @@ Production implementation should begin only after this document and the architec
 
 Backend:
 
-- Python 3.12
+- Python 3.10+
 - FastAPI
 - Pydantic v2
 - LangGraph
@@ -353,4 +353,3 @@ End-to-end tests:
 - Should local mode require PostgreSQL on day one, or start with SQLite plus a migration path?
 - How much of LangGraph should be exposed in public extension APIs?
 - Should generated k6 scripts be committed back to repositories or remain run artifacts by default?
-
