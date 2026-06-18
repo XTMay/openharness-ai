@@ -36,7 +36,7 @@ flowchart LR
 
 ## 当前可用能力
 
-OpenHarness 当前已经有两个只读工作流。
+OpenHarness 当前已经有三个低风险工作流。
 
 ### RepoAgent Analyze
 
@@ -122,6 +122,27 @@ Scenarios:
 
 PerfAgent Plan 目前还不会执行 k6。它的价值是验证 RepoAgent 能否为下游 Agent 提供有用的性能测试候选目标。
 
+### PerfAgent k6 Generation
+
+PerfAgent 可以从性能测试计划生成可审查的 k6 脚本。
+
+```bash
+openharness perf generate --repo examples/fastapi-service --output .openharness/k6 --format text
+```
+
+生成产物：
+
+```text
+.openharness/k6/
+  post_checkout.js
+  post_orders.js
+  get_products.js
+  config.json
+  README.md
+```
+
+生成阶段不会执行 k6。脚本使用 `BASE_URL`，本地审查时默认指向 `http://localhost:8000`。
+
 ## PerfAgent 工作流
 
 ```mermaid
@@ -195,7 +216,7 @@ flowchart LR
 
 1. RepoAgent CLI：仓库分析和 manifest 生成。已完成。
 2. PerfAgent Plan：识别性能敏感路由并生成测试计划。已完成。
-3. PerfAgent k6 Generation：生成可校验的 k6 脚本。
+3. PerfAgent k6 Generation：生成可审查的 k6 脚本。已完成。
 4. PerfAgent Run and Report：执行 k6 并生成性能报告。
 5. GitHub Preview：先以 dry-run 方式渲染 PR 评论，再发布。
 
@@ -210,6 +231,7 @@ flowchart LR
 - [RepoAgent 配置](docs/repo-agent-configuration.md)
 - [Repository Manifest Schema](docs/schemas/repository-manifest.schema.json)
 - [Performance Plan Schema](docs/schemas/performance-plan.schema.json)
+- [k6 Generation Result Schema](docs/schemas/k6-generation-result.schema.json)
 - [贡献指南](CONTRIBUTING.md)
 
 ## 项目原则

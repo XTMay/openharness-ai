@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import TextIO
 
 from openharness import __version__
-from openharness.agents.perf_agent import create_performance_plan
-from openharness.agents.perf_agent.models import PerformancePlan
+from openharness.agents.perf_agent import create_performance_plan, generate_k6_artifacts
+from openharness.agents.perf_agent.models import K6GenerationResult, PerformancePlan
 from openharness.agents.repo_agent import analyze_repository
 from openharness.agents.repo_agent.models import DetectionEvidence, RepositoryManifest
 
@@ -23,6 +23,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_analyze(args, stdout=sys.stdout, stderr=sys.stderr)
     if args.command == "perf" and args.perf_command == "plan":
         return _run_perf_plan(args, stdout=sys.stdout, stderr=sys.stderr)
+    if args.command == "perf" and args.perf_command == "generate":
+        return _run_perf_generate(args, stdout=sys.stdout, stderr=sys.stderr)
 
     parser.print_help()
     return 0
@@ -98,6 +100,38 @@ def build_parser() -> argparse.ArgumentParser:
         default=5,
         help="Maximum number of performance scenarios to include.",
     )
+    generate = perf_subcommands.add_parser(
+        "generate",
+        help="Generate reviewable k6 scripts from a PerfAgent plan.",
+    )
+    generate.add_argument(
+        "--repo",
+        default=".",
+        help="Repository path to analyze. Defaults to the current directory.",
+    )
+    generate.add_argument(
+        "--output",
+        default=".openharness/k6",
+        help="Directory for generated k6 artifacts. Defaults to .openharness/k6.",
+    )
+    generate.add_argument(
+        "--format",
+        choices=("json", "text"),
+        default="json",
+        help="Summary output format. Defaults to json.",
+    )
+    generate.add_argument(
+        "--max-files",
+        type=int,
+        default=10_000,
+        help="Maximum number of files for RepoAgent to scan before stopping.",
+    )
+    generate.add_argument(
+        "--max-scenarios",
+        type=int,
+        default=5,
+        help="Maximum number of performance scenarios to generate.",
+    )
 
     return parser
 
@@ -144,6 +178,24 @@ def _run_perf_plan(args: argparse.Namespace, stdout: TextIO, stderr: TextIO) -> 
     else:
         stdout.write(rendered + "\n")
 
+    return 0
+
+
+def _run_perf_generate(args: argparse.Namespace, stdout: TextIO, stderr: TextIO) -> int:
+    try:
+        manifest = analyze_repository(args.repo, max_files=args.max_files)
+        plan = create_performance_plan(manifest, max_scenarios=args.max_scenarios)
+        result = generate_k6_artifacts(plan, args.output)
+    except (FileNotFoundError, NotADirectoryError, ValueError) as exc:
+        stderr.write(f"error: {exc}\n")
+        return 2
+
+    if args.format == "json":
+        rendered = json.dumps(result.to_dict(), indent=2, sort_keys=True)
+    else:
+        rendered = render_text_k6_generation_result(result)
+
+    stdout.write(rendered + "\n")
     return 0
 
 
@@ -409,6 +461,28 @@ def render_markdown_performance_plan(plan: PerformancePlan) -> str:
     if plan.warnings:
         lines.extend(["", "## Warnings", ""])
         lines.extend(f"- {warning}" for warning in plan.warnings)
+
+    return "\n".join(lines)
+
+
+def render_text_k6_generation_result(result: K6GenerationResult) -> str:
+    lines = [
+        "OpenHarness PerfAgent k6 Generation",
+        "",
+        f"Output: {result.output_dir}",
+        f"Base URL Env: {result.base_url_env}",
+        "",
+        "Files:",
+    ]
+
+    lines.extend(f"- {file.kind}: {file.path}" for file in result.files)
+    if not result.files:
+        lines.append("- none")
+
+    if result.warnings:
+        lines.append("")
+        lines.append("Warnings:")
+        lines.extend(f"- {warning}" for warning in result.warnings)
 
     return "\n".join(lines)
 

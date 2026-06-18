@@ -77,3 +77,26 @@ def test_perf_plan_cli_outputs_json_for_example(capsys):
     output = json.loads(capsys.readouterr().out)
     assert output["agent"] == "PerfAgent"
     assert output["scenarios"][0]["path"] == "/checkout"
+
+
+def test_perf_generate_cli_writes_k6_artifacts(tmp_path, capsys):
+    output_dir = tmp_path / "k6"
+
+    exit_code = main(
+        [
+            "perf",
+            "generate",
+            "--repo",
+            str(_example_repo_path()),
+            "--output",
+            str(output_dir),
+            "--format",
+            "json",
+        ]
+    )
+
+    assert exit_code == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["output_dir"] == output_dir.resolve().as_posix()
+    assert (output_dir / "post_checkout.js").exists()
+    assert (output_dir / "config.json").exists()

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/XTMay/openharness-ai/docs/schemas/k6-generation-result.schema.json",
+  "title": "OpenHarness k6 Generation Result",
+  "type": "object",
+  "required": ["output_dir", "base_url_env", "files", "warnings"],
+  "properties": {
+    "output_dir": { "type": "string" },
+    "base_url_env": { "type": "string" },
+    "files": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/generated_file" }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "generated_file": {
+      "type": "object",
+      "required": ["path", "kind", "scenario_name"],
+      "properties": {
+        "path": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": ["k6_script", "config", "readme"]
+        },
+        "scenario_name": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+

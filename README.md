@@ -36,7 +36,7 @@ flowchart LR
 
 ## What Works Today
 
-OpenHarness currently ships two read-only workflows.
+OpenHarness currently ships three low-risk workflows.
 
 ### RepoAgent Analyze
 
@@ -122,6 +122,27 @@ Scenarios:
 
 PerfAgent Plan does not run k6 yet. It validates that RepoAgent can provide useful performance targets for downstream agents.
 
+### PerfAgent k6 Generation
+
+PerfAgent can generate reviewable k6 scripts from the performance plan.
+
+```bash
+openharness perf generate --repo examples/fastapi-service --output .openharness/k6 --format text
+```
+
+Generated artifacts:
+
+```text
+.openharness/k6/
+  post_checkout.js
+  post_orders.js
+  get_products.js
+  config.json
+  README.md
+```
+
+Generation does not execute k6. Scripts use `BASE_URL` and default to `http://localhost:8000` for local review.
+
 ## PerfAgent Workflow
 
 ```mermaid
@@ -195,7 +216,7 @@ flowchart LR
 
 1. RepoAgent CLI: repository analysis and manifest generation. Done.
 2. PerfAgent Plan: rank performance-sensitive routes and create test plans. Done.
-3. PerfAgent k6 Generation: generate validated k6 scripts.
+3. PerfAgent k6 Generation: generate reviewable k6 scripts. Done.
 4. PerfAgent Run and Report: execute k6 and produce performance reports.
 5. GitHub Preview: render PR comments in dry-run mode before publishing.
 
@@ -210,6 +231,7 @@ flowchart LR
 - [RepoAgent Configuration](docs/repo-agent-configuration.md)
 - [Repository Manifest Schema](docs/schemas/repository-manifest.schema.json)
 - [Performance Plan Schema](docs/schemas/performance-plan.schema.json)
+- [k6 Generation Result Schema](docs/schemas/k6-generation-result.schema.json)
 - [Contributing Guide](CONTRIBUTING.md)
 
 ## Project Principles

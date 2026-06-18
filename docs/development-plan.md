@@ -89,9 +89,10 @@ Deliverables:
 
 Deliverables:
 
-- Generate k6 scripts from a test plan.
-- Validate generated scripts.
-- Save scripts as artifacts.
+- Generate k6 scripts from a test plan. Done.
+- Save scripts as reviewable artifacts. Done.
+- Include a k6 generation result schema. Done.
+- Defer execution to the next milestone.
 
 ### Milestone 4: PerfAgent Run and Report
 

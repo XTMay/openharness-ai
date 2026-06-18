@@ -235,7 +235,9 @@ Current implementation status:
 - The plan includes scenarios, load profiles, thresholds, assumptions, and warnings.
 - The plan is available as JSON, text, or Markdown.
 - The JSON contract is documented at `docs/schemas/performance-plan.schema.json`.
-- k6 generation and execution are intentionally out of scope for this step.
+- `openharness perf generate` creates reviewable k6 scripts, `config.json`, and a README.
+- k6 generation results are documented at `docs/schemas/k6-generation-result.schema.json`.
+- k6 execution remains intentionally out of scope for this step.
 
 ### Test Plan
 

@@ -50,3 +50,20 @@ class PerformancePlan:
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
+
+@dataclass(frozen=True)
+class GeneratedK6File:
+    path: str
+    kind: str
+    scenario_name: str | None = None
+
+
+@dataclass(frozen=True)
+class K6GenerationResult:
+    output_dir: str
+    base_url_env: str
+    files: list[GeneratedK6File] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
