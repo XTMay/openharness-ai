@@ -10,3 +10,9 @@ openharness analyze --repo examples/fastapi-service --format markdown
 ```
 
 The service intentionally includes health, catalog, order, and checkout routes so RepoAgent can detect API routes and performance target candidates.
+
+This example also includes `openharness.yaml` to demonstrate:
+
+- ignoring generated and migration paths
+- limiting service analysis to `app`
+- ranking `checkout`, `order`, and `products` routes as business-critical performance targets

@@ -102,6 +102,57 @@ def test_repo_agent_ignores_common_vendor_directories(tmp_path):
     assert not manifest.api_routes
 
 
+def test_repo_agent_applies_openharness_config(tmp_path):
+    app_dir = tmp_path / "app"
+    tools_dir = tmp_path / "tools"
+    generated_dir = tmp_path / "generated"
+    app_dir.mkdir()
+    tools_dir.mkdir()
+    generated_dir.mkdir()
+
+    (tmp_path / "openharness.yaml").write_text(
+        "\n".join(
+            [
+                "ignore:",
+                '  - "generated/**"',
+                "service_roots:",
+                '  - "app"',
+                "performance:",
+                "  business_critical_keywords:",
+                '    - "products"',
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (app_dir / "main.py").write_text(
+        "from fastapi import FastAPI\n"
+        "app = FastAPI()\n"
+        "@app.get('/products')\n"
+        "def products(): pass\n",
+        encoding="utf-8",
+    )
+    (tools_dir / "utility.py").write_text(
+        "from fastapi import FastAPI\n"
+        "app = FastAPI()\n"
+        "@app.get('/internal')\n"
+        "def internal(): pass\n",
+        encoding="utf-8",
+    )
+    (generated_dir / "ignored.py").write_text("print('ignored')", encoding="utf-8")
+
+    manifest = analyze_repository(tmp_path)
+
+    assert manifest.configuration.path == "openharness.yaml"
+    assert manifest.configuration.ignore == ["generated/**"]
+    assert "generated/ignored.py" not in manifest.test_inventory
+    assert {(route.method, route.path) for route in manifest.api_routes} == {
+        ("GET", "/products")
+    }
+    assert [(target.path, target.priority) for target in manifest.performance_targets] == [
+        ("/products", "high")
+    ]
+
+
 def test_repo_agent_does_not_treat_test_fixtures_as_service_routes(tmp_path):
     tests_dir = tmp_path / "tests"
     tests_dir.mkdir()
@@ -125,6 +176,7 @@ def test_repo_agent_analyzes_fastapi_example():
     manifest = analyze_repository(example_path)
 
     assert [framework.name for framework in manifest.frameworks] == ["FastAPI"]
+    assert manifest.configuration.path == "openharness.yaml"
     assert {(route.method, route.path) for route in manifest.api_routes} == {
         ("GET", "/health"),
         ("GET", "/products"),
@@ -137,5 +189,5 @@ def test_repo_agent_analyzes_fastapi_example():
     assert example_targets == [
         ("POST", "/checkout", "high"),
         ("POST", "/orders", "high"),
-        ("GET", "/products", "medium"),
+        ("GET", "/products", "high"),
     ]

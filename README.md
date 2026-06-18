@@ -48,8 +48,9 @@ Reproducible example output:
 OpenHarness RepoAgent Manifest
 
 Repository: /path/to/openharness-ai/examples/fastapi-service
-Files: 5
-Bytes: 1298
+Config: openharness.yaml
+Files: 6
+Bytes: 1781
 
 Languages:
 - Python: 2 files, 545 bytes
@@ -66,7 +67,7 @@ API Routes:
 Performance Targets:
 - HIGH POST /checkout: Business-critical route keyword suggests performance sensitivity
 - HIGH POST /orders: Business-critical route keyword suggests performance sensitivity
-- MEDIUM GET /products: Collection endpoint may become throughput or pagination sensitive
+- HIGH GET /products: Business-critical route keyword suggests performance sensitivity
 
 Infrastructure:
 - Dockerfile
@@ -90,6 +91,8 @@ openharness analyze --repo examples/fastapi-service --format json
 openharness analyze --repo examples/fastapi-service --format text
 openharness analyze --repo examples/fastapi-service --format markdown
 ```
+
+RepoAgent also supports `openharness.yaml` for real repositories that need custom ignore rules, service roots, production paths, or business-critical keywords.
 
 ## PerfAgent Workflow
 
@@ -176,6 +179,7 @@ flowchart LR
 - [MVP Roadmap](docs/mvp-roadmap.md)
 - [Development Plan](docs/development-plan.md)
 - [Translation Guide](docs/i18n.md)
+- [RepoAgent Configuration](docs/repo-agent-configuration.md)
 - [Repository Manifest Schema](docs/schemas/repository-manifest.schema.json)
 - [Contributing Guide](CONTRIBUTING.md)
 

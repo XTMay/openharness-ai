@@ -1,0 +1,18 @@
+# RepoAgent configuration for the example service.
+
+ignore:
+  - "generated/**"
+  - "migrations/**"
+
+service_roots:
+  - "app"
+
+production_paths:
+  - "app"
+
+performance:
+  business_critical_keywords:
+    - "checkout"
+    - "order"
+    - "products"
+

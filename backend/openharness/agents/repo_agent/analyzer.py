@@ -10,12 +10,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
+from openharness.agents.repo_agent.config import RepoAgentConfig, load_repo_agent_config
 from openharness.agents.repo_agent.models import (
     ApiRoute,
     DetectionEvidence,
     FrameworkDetection,
     LanguageStat,
     PerformanceTarget,
+    RepositoryConfiguration,
     RepositoryIdentity,
     RepositoryManifest,
     ServiceEntrypoint,
@@ -75,15 +77,16 @@ def analyze_repository(repo_path: str | Path, max_files: int = 10_000) -> Reposi
     if not root.is_dir():
         raise NotADirectoryError(f"Repository path is not a directory: {root}")
 
-    scan = scan_repository(root, max_files=max_files)
+    config = load_repo_agent_config(root)
+    scan = scan_repository(root, max_files=max_files, ignore_patterns=config.ignore)
     text_cache = _read_text_files(scan.files)
 
     languages = _detect_languages(scan.files)
     package_managers = _detect_package_managers(scan.files)
-    frameworks = _detect_frameworks(scan.files, text_cache)
-    api_routes = _extract_api_routes(text_cache)
-    performance_targets = _identify_performance_targets(api_routes)
-    service_entrypoints = _detect_service_entrypoints(scan.files, text_cache)
+    frameworks = _detect_frameworks(scan.files, text_cache, config)
+    api_routes = _extract_api_routes(text_cache, config)
+    performance_targets = _identify_performance_targets(api_routes, config)
+    service_entrypoints = _detect_service_entrypoints(scan.files, text_cache, config)
     infrastructure = _detect_infrastructure(scan.files, text_cache)
     test_inventory = _detect_tests(scan.files, text_cache)
     warnings: list[str] = []
@@ -96,6 +99,13 @@ def analyze_repository(repo_path: str | Path, max_files: int = 10_000) -> Reposi
             root=root.as_posix(),
             current_branch=_git_output(root, "rev-parse", "--abbrev-ref", "HEAD"),
             commit_sha=_git_output(root, "rev-parse", "HEAD"),
+        ),
+        configuration=RepositoryConfiguration(
+            path=config.path,
+            ignore=config.ignore,
+            service_roots=config.service_roots,
+            production_paths=config.production_paths,
+            business_critical_keywords=config.business_critical_keywords,
         ),
         generated_at=datetime.now(timezone.utc).isoformat(),
         total_files=len(scan.files),
@@ -154,13 +164,15 @@ def _detect_package_managers(files: Iterable[FileRecord]) -> list[str]:
 
 
 def _detect_frameworks(
-    files: Iterable[FileRecord], text_cache: dict[str, str]
+    files: Iterable[FileRecord], text_cache: dict[str, str], config: RepoAgentConfig
 ) -> list[FrameworkDetection]:
     evidence_by_framework: dict[str, list[DetectionEvidence]] = defaultdict(list)
     filenames = {Path(file.relative_path).name for file in files}
 
     for path, text in text_cache.items():
         if _is_test_path(path):
+            continue
+        if not _is_analysis_path(path, config):
             continue
         suffix = Path(path).suffix.lower()
         if suffix == ".py":
@@ -229,11 +241,13 @@ def _detect_frameworks(
     ]
 
 
-def _extract_api_routes(text_cache: dict[str, str]) -> list[ApiRoute]:
+def _extract_api_routes(text_cache: dict[str, str], config: RepoAgentConfig) -> list[ApiRoute]:
     routes: list[ApiRoute] = []
 
     for path, text in sorted(text_cache.items()):
         if _is_test_path(path):
+            continue
+        if not _is_analysis_path(path, config):
             continue
         suffix = Path(path).suffix.lower()
         if suffix == ".py":
@@ -311,13 +325,15 @@ def _extract_api_routes(text_cache: dict[str, str]) -> list[ApiRoute]:
     return routes
 
 
-def _identify_performance_targets(routes: Iterable[ApiRoute]) -> list[PerformanceTarget]:
+def _identify_performance_targets(
+    routes: Iterable[ApiRoute], config: RepoAgentConfig
+) -> list[PerformanceTarget]:
     targets: list[PerformanceTarget] = []
     for route in routes:
         if _is_low_signal_route(route.path):
             continue
 
-        priority, reason = _performance_priority(route)
+        priority, reason = _performance_priority(route, config)
         targets.append(
             PerformanceTarget(
                 method=route.method,
@@ -334,7 +350,7 @@ def _identify_performance_targets(routes: Iterable[ApiRoute]) -> list[Performanc
 
 
 def _detect_service_entrypoints(
-    files: Iterable[FileRecord], text_cache: dict[str, str]
+    files: Iterable[FileRecord], text_cache: dict[str, str], config: RepoAgentConfig
 ) -> list[ServiceEntrypoint]:
     entrypoints: list[ServiceEntrypoint] = []
     filenames = {Path(file.relative_path).name: file.relative_path for file in files}
@@ -382,6 +398,8 @@ def _detect_service_entrypoints(
 
     for path, text in sorted(text_cache.items()):
         if _is_test_path(path):
+            continue
+        if not _is_analysis_path(path, config):
             continue
         if Path(path).suffix.lower() == ".py" and (
             _contains_fastapi_app(text) or _contains_flask_app(text)
@@ -556,12 +574,11 @@ def _is_low_signal_route(path: str) -> bool:
     }
 
 
-def _performance_priority(route: ApiRoute) -> tuple[str, str]:
+def _performance_priority(route: ApiRoute, config: RepoAgentConfig) -> tuple[str, str]:
     normalized = route.path.lower()
-    business_keywords = ("checkout", "payment", "order", "search", "cart", "booking")
     write_methods = {"POST", "PUT", "PATCH", "DELETE"}
 
-    if any(keyword in normalized for keyword in business_keywords):
+    if any(keyword in normalized for keyword in config.business_critical_keywords):
         return "high", "Business-critical route keyword suggests performance sensitivity"
 
     if route.method in write_methods:
@@ -578,6 +595,14 @@ def _performance_priority(route: ApiRoute) -> tuple[str, str]:
 
 def _priority_rank(priority: str) -> int:
     return {"high": 0, "medium": 1, "low": 2}.get(priority, 3)
+
+
+def _is_analysis_path(path: str, config: RepoAgentConfig) -> bool:
+    prefixes = [*config.service_roots, *config.production_paths]
+    if not prefixes:
+        return True
+    normalized = path.strip("/")
+    return any(normalized == prefix or normalized.startswith(f"{prefix}/") for prefix in prefixes)
 
 
 def _git_output(root: Path, *args: str) -> str | None:

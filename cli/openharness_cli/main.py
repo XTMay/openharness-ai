@@ -64,7 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
 def _run_analyze(args: argparse.Namespace, stdout: TextIO, stderr: TextIO) -> int:
     try:
         manifest = analyze_repository(args.repo, max_files=args.max_files)
-    except (FileNotFoundError, NotADirectoryError) as exc:
+    except (FileNotFoundError, NotADirectoryError, ValueError) as exc:
         stderr.write(f"error: {exc}\n")
         return 2
 
@@ -88,6 +88,7 @@ def render_text_manifest(manifest: RepositoryManifest) -> str:
         "OpenHarness RepoAgent Manifest",
         "",
         f"Repository: {manifest.repository.root}",
+        f"Config: {manifest.configuration.path or 'none'}",
         f"Branch: {manifest.repository.current_branch or 'unknown'}",
         f"Commit: {manifest.repository.commit_sha or 'unknown'}",
         f"Files: {manifest.total_files}",
@@ -146,6 +147,7 @@ def render_markdown_manifest(manifest: RepositoryManifest) -> str:
         "## Repository",
         "",
         f"- Root: `{manifest.repository.root}`",
+        f"- Config: `{manifest.configuration.path or 'none'}`",
         f"- Branch: `{manifest.repository.current_branch or 'unknown'}`",
         f"- Commit: `{manifest.repository.commit_sha or 'unknown'}`",
         f"- Files: `{manifest.total_files}`",
@@ -222,6 +224,33 @@ def render_markdown_manifest(manifest: RepositoryManifest) -> str:
     if manifest.warnings:
         lines.extend(["", "## Warnings", ""])
         lines.extend(f"- {warning}" for warning in manifest.warnings)
+
+    lines.extend(["", "## Configuration", ""])
+    lines.append(f"- Config file: `{manifest.configuration.path or 'none'}`")
+    lines.append(
+        "- Ignore patterns: "
+        + (
+            ", ".join(f"`{pattern}`" for pattern in manifest.configuration.ignore)
+            if manifest.configuration.ignore
+            else "none"
+        )
+    )
+    lines.append(
+        "- Service roots: "
+        + (
+            ", ".join(f"`{path}`" for path in manifest.configuration.service_roots)
+            if manifest.configuration.service_roots
+            else "none"
+        )
+    )
+    lines.append(
+        "- Production paths: "
+        + (
+            ", ".join(f"`{path}`" for path in manifest.configuration.production_paths)
+            if manifest.configuration.production_paths
+            else "none"
+        )
+    )
 
     return "\n".join(lines)
 

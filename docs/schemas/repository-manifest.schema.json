@@ -5,6 +5,7 @@
   "type": "object",
   "required": [
     "repository",
+    "configuration",
     "generated_at",
     "total_files",
     "total_bytes",
@@ -26,6 +27,36 @@
         "root": { "type": "string" },
         "current_branch": { "type": ["string", "null"] },
         "commit_sha": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "configuration": {
+      "type": "object",
+      "required": [
+        "path",
+        "ignore",
+        "service_roots",
+        "production_paths",
+        "business_critical_keywords"
+      ],
+      "properties": {
+        "path": { "type": ["string", "null"] },
+        "ignore": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "service_roots": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "production_paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "business_critical_keywords": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
       },
       "additionalProperties": false
     },
@@ -163,4 +194,3 @@
     }
   }
 }
-

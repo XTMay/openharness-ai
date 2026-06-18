@@ -11,5 +11,5 @@ def test_repository_manifest_schema_is_valid_json():
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
 
     assert schema["title"] == "OpenHarness Repository Manifest"
+    assert "configuration" in schema["required"]
     assert "performance_targets" in schema["required"]
-

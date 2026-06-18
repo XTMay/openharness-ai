@@ -68,6 +68,7 @@ Deliverables:
 - JSON, text, and Markdown outputs. Done.
 - Evidence and confidence for key detections. Done.
 - Performance target candidates. Done.
+- `openharness.yaml` repository configuration. Done.
 - Manifest JSON Schema. Done.
 - FastAPI example repository. Done.
 - Unit tests. Done.

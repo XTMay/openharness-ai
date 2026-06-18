@@ -14,6 +14,15 @@ class RepositoryIdentity:
 
 
 @dataclass(frozen=True)
+class RepositoryConfiguration:
+    path: str | None = None
+    ignore: list[str] = field(default_factory=list)
+    service_roots: list[str] = field(default_factory=list)
+    production_paths: list[str] = field(default_factory=list)
+    business_critical_keywords: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class LanguageStat:
     name: str
     files: int
@@ -68,6 +77,7 @@ class PerformanceTarget:
 @dataclass(frozen=True)
 class RepositoryManifest:
     repository: RepositoryIdentity
+    configuration: RepositoryConfiguration
     generated_at: str
     total_files: int
     total_bytes: int

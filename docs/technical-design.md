@@ -196,6 +196,9 @@ Current manifest outputs:
 
 RepoAgent detections should include evidence and confidence when possible so users can understand why the agent reached a conclusion.
 
+RepoAgent supports optional repository-local configuration through `openharness.yaml`.
+The configuration can define ignore patterns, service roots, production paths, and business-critical performance keywords.
+
 ## 7. PerfAgent Design
 
 PerfAgent depends on RepoAgent output.

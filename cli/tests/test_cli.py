@@ -15,6 +15,7 @@ def test_analyze_cli_outputs_json(tmp_path, capsys):
 
     assert exit_code == 0
     output = json.loads(capsys.readouterr().out)
+    assert output["configuration"]["path"] is None
     assert output["frameworks"][0]["name"] == "FastAPI"
     assert output["frameworks"][0]["evidence"][0]["source"] == "app.py"
     assert output["api_routes"][0]["path"] == "/health"
@@ -43,3 +44,12 @@ def test_analyze_cli_returns_error_for_missing_repo(capsys):
 
     assert exit_code == 2
     assert "does not exist" in capsys.readouterr().err
+
+
+def test_analyze_cli_returns_error_for_invalid_config(tmp_path, capsys):
+    (tmp_path / "openharness.yaml").write_text("ignore: [broken\n", encoding="utf-8")
+
+    exit_code = main(["analyze", "--repo", str(tmp_path)])
+
+    assert exit_code == 2
+    assert "Invalid YAML" in capsys.readouterr().err
