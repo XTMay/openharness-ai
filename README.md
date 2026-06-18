@@ -4,11 +4,35 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue.svg)](pyproject.toml)
 
+English | [简体中文](README.zh-CN.md)
+
 OpenHarness AI is an open-source AI-native software delivery platform for building autonomous engineering agents.
 
 The mission is to turn CI/CD platforms into AI-native engineering systems that can understand repositories, plan delivery workflows, run engineering tools, and explain results through auditable agent workflows.
 
 The first flagship application is **PerfAgent**, an AI performance engineering agent that will analyze a repository, plan performance tests, generate k6 scripts, run tests, analyze metrics, and report performance risk back to developers.
+
+## System Overview
+
+```mermaid
+flowchart LR
+    developer["Developer / Platform Engineer / SRE"]
+    cli["OpenHarness CLI / API"]
+    runtime["Agent Runtime"]
+    repo["RepoAgent<br/>Repository Intelligence"]
+    perf["PerfAgent<br/>Performance Engineering"]
+    tools["Tool Layer<br/>Git, k6, CI/CD, Observability"]
+    reports["Reports / PR Comments / Artifacts"]
+
+    developer --> cli
+    cli --> runtime
+    runtime --> repo
+    runtime --> perf
+    repo --> perf
+    runtime --> tools
+    tools --> reports
+    perf --> reports
+```
 
 ## What Works Today
 
@@ -50,6 +74,22 @@ RepoAgent detects:
 - Infrastructure files
 - Test assets
 
+## PerfAgent Workflow
+
+```mermaid
+flowchart TD
+    repo["Git Repository"]
+    analyze["RepoAgent<br/>Analyze repository"]
+    plan["PerfAgent Planner<br/>Choose performance targets"]
+    generate["k6 Generator<br/>Create load test scripts"]
+    run["Executor<br/>Run k6"]
+    metrics["Metrics Collector<br/>Parse results"]
+    analyst["AI Performance Analyst<br/>Explain risk"]
+    report["Report<br/>Markdown / PR comment"]
+
+    repo --> analyze --> plan --> generate --> run --> metrics --> analyst --> report
+```
+
 ## Why OpenHarness
 
 AI coding assistants help write code. OpenHarness focuses on the rest of software delivery:
@@ -64,12 +104,23 @@ AI coding assistants help write code. OpenHarness focuses on the rest of softwar
 
 The long-term goal is an open agent ecosystem:
 
-- `RepoAgent`: repository intelligence
-- `PerfAgent`: performance engineering
-- `ReviewAgent`: code and architecture review
-- `SecurityAgent`: security validation
-- `DeployAgent`: deployment planning
-- `IncidentAgent`: incident analysis
+```mermaid
+flowchart TB
+    platform["OpenHarness AI<br/>Agent Runtime Platform"]
+    repo["RepoAgent"]
+    perf["PerfAgent"]
+    review["ReviewAgent"]
+    security["SecurityAgent"]
+    deploy["DeployAgent"]
+    incident["IncidentAgent"]
+
+    platform --> repo
+    platform --> perf
+    platform --> review
+    platform --> security
+    platform --> deploy
+    platform --> incident
+```
 
 ## Quickstart
 
@@ -82,6 +133,17 @@ pytest
 ```
 
 ## Roadmap
+
+```mermaid
+flowchart LR
+    r1["1. RepoAgent CLI"]
+    r2["2. PerfAgent Plan"]
+    r3["3. k6 Generation"]
+    r4["4. Run and Report"]
+    r5["5. GitHub Preview"]
+
+    r1 --> r2 --> r3 --> r4 --> r5
+```
 
 1. RepoAgent CLI: repository analysis and manifest generation.
 2. PerfAgent Plan: rank performance-sensitive routes and create test plans.
