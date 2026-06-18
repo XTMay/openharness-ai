@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openharness-ai"
+version = "0.1.0a0"
+description = "AI-native software delivery platform for autonomous engineering agents."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "OpenHarness AI contributors" }
+]
+keywords = [
+  "ai",
+  "software-delivery",
+  "ci-cd",
+  "agents",
+  "performance-engineering",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Software Development :: Testing",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.5",
+]
+
+[project.scripts]
+openharness = "openharness_cli.main:main"
+
+[tool.setuptools.packages.find]
+where = ["backend", "cli"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+pythonpath = ["backend", "cli"]
+testpaths = ["backend/tests", "cli/tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
