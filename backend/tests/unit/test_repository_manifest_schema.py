@@ -33,3 +33,13 @@ def test_k6_generation_result_schema_is_valid_json():
 
     assert schema["title"] == "OpenHarness k6 Generation Result"
     assert "files" in schema["required"]
+
+
+def test_k6_validation_result_schema_is_valid_json():
+    repo_root = Path(__file__).resolve().parents[3]
+    schema_path = repo_root / "docs" / "schemas" / "k6-validation-result.schema.json"
+
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    assert schema["title"] == "OpenHarness k6 Validation Result"
+    assert "findings" in schema["required"]

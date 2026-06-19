@@ -67,3 +67,22 @@ class K6GenerationResult:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class ValidationFinding:
+    severity: str
+    id: str
+    message: str
+    path: str | None = None
+
+
+@dataclass(frozen=True)
+class K6ValidationResult:
+    artifacts_dir: str
+    valid: bool
+    summary: str
+    findings: list[ValidationFinding] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)

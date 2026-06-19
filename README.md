@@ -36,7 +36,7 @@ flowchart LR
 
 ## What Works Today
 
-OpenHarness currently ships three low-risk workflows.
+OpenHarness currently ships four low-risk workflows.
 
 ### RepoAgent Analyze
 
@@ -143,6 +143,24 @@ Generated artifacts:
 
 Generation does not execute k6. Scripts use `BASE_URL` and default to `http://localhost:8000` for local review.
 
+### PerfAgent k6 Validation
+
+Validate generated artifacts before running anything.
+
+```bash
+openharness perf validate --artifacts .openharness/k6
+```
+
+Validation checks artifact structure, `config.json`, generated scripts, stale scripts, `BASE_URL` usage, and k6 script shape. It does not run load tests or hit `BASE_URL`.
+
+For CI, use strict mode to fail on warnings:
+
+```bash
+openharness perf validate --artifacts .openharness/k6 --strict
+```
+
+If k6 is installed and you explicitly want static k6 inspection, add `--with-k6-inspect`.
+
 ## PerfAgent Workflow
 
 ```mermaid
@@ -217,8 +235,9 @@ flowchart LR
 1. RepoAgent CLI: repository analysis and manifest generation. Done.
 2. PerfAgent Plan: rank performance-sensitive routes and create test plans. Done.
 3. PerfAgent k6 Generation: generate reviewable k6 scripts. Done.
-4. PerfAgent Run and Report: execute k6 and produce performance reports.
-5. GitHub Preview: render PR comments in dry-run mode before publishing.
+4. PerfAgent Validate: validate generated k6 artifacts without running tests. Done.
+5. PerfAgent Run and Report: execute k6 and produce performance reports.
+6. GitHub Preview: render PR comments in dry-run mode before publishing.
 
 ## Documentation
 
@@ -232,6 +251,7 @@ flowchart LR
 - [Repository Manifest Schema](docs/schemas/repository-manifest.schema.json)
 - [Performance Plan Schema](docs/schemas/performance-plan.schema.json)
 - [k6 Generation Result Schema](docs/schemas/k6-generation-result.schema.json)
+- [k6 Validation Result Schema](docs/schemas/k6-validation-result.schema.json)
 - [Contributing Guide](CONTRIBUTING.md)
 
 ## Project Principles

@@ -9,8 +9,16 @@ from pathlib import Path
 from typing import TextIO
 
 from openharness import __version__
-from openharness.agents.perf_agent import create_performance_plan, generate_k6_artifacts
-from openharness.agents.perf_agent.models import K6GenerationResult, PerformancePlan
+from openharness.agents.perf_agent import (
+    create_performance_plan,
+    generate_k6_artifacts,
+    validate_k6_artifacts,
+)
+from openharness.agents.perf_agent.models import (
+    K6GenerationResult,
+    K6ValidationResult,
+    PerformancePlan,
+)
 from openharness.agents.repo_agent import analyze_repository
 from openharness.agents.repo_agent.models import DetectionEvidence, RepositoryManifest
 
@@ -25,6 +33,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_perf_plan(args, stdout=sys.stdout, stderr=sys.stderr)
     if args.command == "perf" and args.perf_command == "generate":
         return _run_perf_generate(args, stdout=sys.stdout, stderr=sys.stderr)
+    if args.command == "perf" and args.perf_command == "validate":
+        return _run_perf_validate(args, stdout=sys.stdout, stderr=sys.stderr)
 
     parser.print_help()
     return 0
@@ -132,6 +142,31 @@ def build_parser() -> argparse.ArgumentParser:
         default=5,
         help="Maximum number of performance scenarios to generate.",
     )
+    validate = perf_subcommands.add_parser(
+        "validate",
+        help="Validate generated k6 artifacts without executing load tests.",
+    )
+    validate.add_argument(
+        "--artifacts",
+        default=".openharness/k6",
+        help="Directory containing generated k6 artifacts. Defaults to .openharness/k6.",
+    )
+    validate.add_argument(
+        "--format",
+        choices=("json", "text"),
+        default="text",
+        help="Output format. Defaults to text.",
+    )
+    validate.add_argument(
+        "--with-k6-inspect",
+        action="store_true",
+        help="Run k6 inspect when k6 is installed. This never runs a load test.",
+    )
+    validate.add_argument(
+        "--strict",
+        action="store_true",
+        help="Treat warnings as validation failures.",
+    )
 
     return parser
 
@@ -197,6 +232,22 @@ def _run_perf_generate(args: argparse.Namespace, stdout: TextIO, stderr: TextIO)
 
     stdout.write(rendered + "\n")
     return 0
+
+
+def _run_perf_validate(args: argparse.Namespace, stdout: TextIO, stderr: TextIO) -> int:
+    result = validate_k6_artifacts(
+        args.artifacts,
+        with_k6_inspect=args.with_k6_inspect,
+        strict=args.strict,
+    )
+
+    if args.format == "json":
+        rendered = json.dumps(result.to_dict(), indent=2, sort_keys=True)
+    else:
+        rendered = render_text_k6_validation_result(result)
+
+    stdout.write(rendered + "\n")
+    return 0 if result.valid else 1
 
 
 def render_text_manifest(manifest: RepositoryManifest) -> str:
@@ -483,6 +534,30 @@ def render_text_k6_generation_result(result: K6GenerationResult) -> str:
         lines.append("")
         lines.append("Warnings:")
         lines.extend(f"- {warning}" for warning in result.warnings)
+
+    return "\n".join(lines)
+
+
+def render_text_k6_validation_result(result: K6ValidationResult) -> str:
+    status = "PASS" if result.valid else "FAIL"
+    lines = [
+        "OpenHarness PerfAgent k6 Validation",
+        "",
+        f"Status: {status}",
+        f"Artifacts: {result.artifacts_dir}",
+        f"Summary: {result.summary}",
+        "",
+        "Findings:",
+    ]
+
+    lines.extend(
+        f"- {finding.severity.upper()} {finding.id}: {finding.message}"
+        + (f" ({finding.path})" if finding.path else "")
+        for finding in result.findings
+    )
+
+    if not result.findings:
+        lines.append("- none")
 
     return "\n".join(lines)
 

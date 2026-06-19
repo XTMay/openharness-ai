@@ -100,3 +100,63 @@ def test_perf_generate_cli_writes_k6_artifacts(tmp_path, capsys):
     assert output["output_dir"] == output_dir.resolve().as_posix()
     assert (output_dir / "post_checkout.js").exists()
     assert (output_dir / "config.json").exists()
+
+
+def test_perf_validate_cli_checks_generated_artifacts(tmp_path, capsys):
+    output_dir = tmp_path / "k6"
+    main(
+        [
+            "perf",
+            "generate",
+            "--repo",
+            str(_example_repo_path()),
+            "--output",
+            str(output_dir),
+        ]
+    )
+    capsys.readouterr()
+
+    exit_code = main(
+        [
+            "perf",
+            "validate",
+            "--artifacts",
+            str(output_dir),
+            "--format",
+            "text",
+        ]
+    )
+
+    assert exit_code == 0
+    output = capsys.readouterr().out
+    assert "Status: PASS" in output
+    assert "WARNING script_placeholder_payload" in output
+
+
+def test_perf_validate_cli_fails_for_missing_artifacts(tmp_path, capsys):
+    exit_code = main(["perf", "validate", "--artifacts", str(tmp_path / "missing")])
+
+    assert exit_code == 1
+    output = capsys.readouterr().out
+    assert "artifacts_dir_missing" in output
+
+
+def test_perf_validate_cli_strict_fails_on_warnings(tmp_path, capsys):
+    output_dir = tmp_path / "k6"
+    main(
+        [
+            "perf",
+            "generate",
+            "--repo",
+            str(_example_repo_path()),
+            "--output",
+            str(output_dir),
+        ]
+    )
+    capsys.readouterr()
+
+    exit_code = main(["perf", "validate", "--artifacts", str(output_dir), "--strict"])
+
+    assert exit_code == 1
+    output = capsys.readouterr().out
+    assert "script_placeholder_payload" in output

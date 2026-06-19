@@ -22,7 +22,7 @@ def generate_k6_artifacts(plan: PerformancePlan, output_dir: str | Path) -> K6Ge
     warnings = list(plan.warnings)
 
     for scenario in plan.scenarios:
-        filename = f"{_safe_filename(scenario.name)}.js"
+        filename = _script_filename(scenario.name)
         script_path = destination / filename
         script_path.write_text(_render_k6_script(plan, scenario), encoding="utf-8")
         files.append(
@@ -61,6 +61,7 @@ def _render_k6_script(plan: PerformancePlan, scenario: PerformanceScenario) -> s
         for threshold in scenario.thresholds
     }
     method = scenario.method.lower()
+    scenario_key = _safe_identifier(scenario.name)
     request_lines = _request_lines(method, scenario.path)
     payload_block = (
         "  const payload = { example: true };\n"
@@ -77,7 +78,7 @@ def _render_k6_script(plan: PerformancePlan, scenario: PerformanceScenario) -> s
             "",
             "export const options = {",
             "  scenarios: {",
-            f"    {scenario.name}: {{",
+            f"    {scenario_key}: {{",
             "      executor: 'ramping-vus',",
             "      stages: [",
             f"        {{ duration: '{scenario.load_profile.ramp_up}', "
@@ -120,6 +121,8 @@ def _render_config(plan: PerformancePlan) -> dict[str, object]:
         "scenarios": [
             {
                 "name": scenario.name,
+                "script": _script_filename(scenario.name),
+                "scenario_key": _safe_identifier(scenario.name),
                 "method": scenario.method,
                 "path": scenario.path,
                 "priority": scenario.priority,
@@ -132,7 +135,7 @@ def _render_config(plan: PerformancePlan) -> dict[str, object]:
 
 
 def _render_readme(plan: PerformancePlan) -> str:
-    first_script = f"{plan.scenarios[0].name}.js" if plan.scenarios else "scenario.js"
+    first_script = _script_filename(plan.scenarios[0].name) if plan.scenarios else "scenario.js"
     lines = [
         "# OpenHarness k6 Artifacts",
         "",
@@ -155,7 +158,7 @@ def _render_readme(plan: PerformancePlan) -> str:
 
     if plan.scenarios:
         lines.extend(
-            f"- `{scenario.name}.js`: {scenario.method} {scenario.path}"
+            f"- `{_script_filename(scenario.name)}`: {scenario.method} {scenario.path}"
             for scenario in plan.scenarios
         )
     else:
@@ -165,8 +168,23 @@ def _render_readme(plan: PerformancePlan) -> str:
 
 
 def _safe_filename(name: str) -> str:
-    cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "_", name).strip("._")
+    cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "_", name)
+    cleaned = re.sub(r"_+", "_", cleaned).strip("._")
     return cleaned or "scenario"
+
+
+def _script_filename(name: str) -> str:
+    return f"{_safe_filename(name)}.js"
+
+
+def _safe_identifier(name: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9_$]+", "_", name)
+    cleaned = re.sub(r"_+", "_", cleaned).strip("_")
+    if not cleaned:
+        return "scenario"
+    if cleaned[0].isdigit():
+        return f"scenario_{cleaned}"
+    return cleaned
 
 
 def _request_lines(method: str, path: str) -> list[str]:

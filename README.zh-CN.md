@@ -36,7 +36,7 @@ flowchart LR
 
 ## 当前可用能力
 
-OpenHarness 当前已经有三个低风险工作流。
+OpenHarness 当前已经有四个低风险工作流。
 
 ### RepoAgent Analyze
 
@@ -143,6 +143,24 @@ openharness perf generate --repo examples/fastapi-service --output .openharness/
 
 生成阶段不会执行 k6。脚本使用 `BASE_URL`，本地审查时默认指向 `http://localhost:8000`。
 
+### PerfAgent k6 Validation
+
+在真正执行前，先验证生成产物。
+
+```bash
+openharness perf validate --artifacts .openharness/k6
+```
+
+Validate 会检查产物结构、`config.json`、生成脚本、过期脚本、`BASE_URL` 使用和 k6 脚本形态。它不会执行压测，也不会请求 `BASE_URL`。
+
+在 CI 中可以使用 strict 模式，把 warning 也视为失败：
+
+```bash
+openharness perf validate --artifacts .openharness/k6 --strict
+```
+
+如果本机已安装 k6，并且你明确想做 k6 静态检查，可以添加 `--with-k6-inspect`。
+
 ## PerfAgent 工作流
 
 ```mermaid
@@ -217,8 +235,9 @@ flowchart LR
 1. RepoAgent CLI：仓库分析和 manifest 生成。已完成。
 2. PerfAgent Plan：识别性能敏感路由并生成测试计划。已完成。
 3. PerfAgent k6 Generation：生成可审查的 k6 脚本。已完成。
-4. PerfAgent Run and Report：执行 k6 并生成性能报告。
-5. GitHub Preview：先以 dry-run 方式渲染 PR 评论，再发布。
+4. PerfAgent Validate：不执行压测，只验证生成的 k6 产物。已完成。
+5. PerfAgent Run and Report：执行 k6 并生成性能报告。
+6. GitHub Preview：先以 dry-run 方式渲染 PR 评论，再发布。
 
 ## 文档
 
@@ -232,6 +251,7 @@ flowchart LR
 - [Repository Manifest Schema](docs/schemas/repository-manifest.schema.json)
 - [Performance Plan Schema](docs/schemas/performance-plan.schema.json)
 - [k6 Generation Result Schema](docs/schemas/k6-generation-result.schema.json)
+- [k6 Validation Result Schema](docs/schemas/k6-validation-result.schema.json)
 - [贡献指南](CONTRIBUTING.md)
 
 ## 项目原则

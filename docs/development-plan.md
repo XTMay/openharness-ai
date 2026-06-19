@@ -98,6 +98,9 @@ Deliverables:
 
 Deliverables:
 
+- Validate generated k6 artifacts without executing load. Done.
+- Provide a k6 validation result schema. Done.
+- Support strict validation for CI and opt-in k6 inspect. Done.
 - Execute k6 locally.
 - Parse k6 output.
 - Generate Markdown report.

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/XTMay/openharness-ai/docs/schemas/k6-validation-result.schema.json",
+  "title": "OpenHarness k6 Validation Result",
+  "type": "object",
+  "required": ["artifacts_dir", "valid", "summary", "findings"],
+  "properties": {
+    "artifacts_dir": { "type": "string" },
+    "valid": { "type": "boolean" },
+    "summary": { "type": "string" },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "required": ["severity", "id", "message", "path"],
+      "properties": {
+        "severity": {
+          "type": "string",
+          "enum": ["error", "warning", "info"]
+        },
+        "id": { "type": "string" },
+        "message": { "type": "string" },
+        "path": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+

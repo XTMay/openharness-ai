@@ -237,6 +237,10 @@ Current implementation status:
 - The JSON contract is documented at `docs/schemas/performance-plan.schema.json`.
 - `openharness perf generate` creates reviewable k6 scripts, `config.json`, and a README.
 - k6 generation results are documented at `docs/schemas/k6-generation-result.schema.json`.
+- `openharness perf validate` validates generated k6 artifacts without executing load tests.
+- k6 validation results are documented at `docs/schemas/k6-validation-result.schema.json`.
+- Validation defaults to static artifact checks. `--strict` treats warnings as failures.
+- `--with-k6-inspect` is opt-in and must not run load tests or hit `BASE_URL`.
 - k6 execution remains intentionally out of scope for this step.
 
 ### Test Plan

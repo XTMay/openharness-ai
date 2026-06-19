@@ -4,6 +4,12 @@ import json
 from pathlib import Path
 
 from openharness.agents.perf_agent import create_performance_plan, generate_k6_artifacts
+from openharness.agents.perf_agent.models import (
+    LoadProfile,
+    PerformancePlan,
+    PerformanceScenario,
+    Threshold,
+)
 from openharness.agents.repo_agent import analyze_repository
 
 
@@ -46,3 +52,40 @@ def test_perf_agent_generate_handles_empty_plan(tmp_path):
     assert result.warnings
     assert (tmp_path / "config.json").exists()
     assert not list(tmp_path.glob("*.js"))
+
+
+def test_perf_agent_generates_safe_files_for_dynamic_routes(tmp_path):
+    plan = PerformancePlan(
+        agent="PerfAgent",
+        repository_root="/repo",
+        repo_agent_config=None,
+        generated_from="test",
+        base_url_env="BASE_URL",
+        scenarios=[
+            PerformanceScenario(
+                name="get_users_{id}",
+                method="GET",
+                path="/users/{id}",
+                priority="medium",
+                source="app.py",
+                framework="FastAPI",
+                reason="dynamic route regression",
+                load_profile=LoadProfile(
+                    name="light-load",
+                    virtual_users=1,
+                    duration="30s",
+                    ramp_up="0s",
+                    description="test",
+                ),
+                thresholds=[
+                    Threshold("http_req_failed", "rate<0.01", "test"),
+                ],
+            )
+        ],
+    )
+
+    generate_k6_artifacts(plan, tmp_path)
+
+    script = (tmp_path / "get_users_id.js").read_text(encoding="utf-8")
+    assert "get_users_id: {" in script
+    assert "get_users_{id}: {" not in script
